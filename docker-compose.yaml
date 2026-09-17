@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: krs_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: krs_akademik
+      POSTGRES_USER: krs_user
+      POSTGRES_PASSWORD: secretpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - krs_db_data:/var/lib/postgresql/data
+      # Me-mount folder init agar ekstensi pg_trgm tereksekusi otomatis
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    
+volumes:
+  krs_db_data:
