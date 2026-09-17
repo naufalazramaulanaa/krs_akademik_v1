@@ -51,19 +51,33 @@ class EnrollmentController extends Controller
     /**
      * POST /api/enrollments
      */
-    public function store(StoreEnrollmentRequest $request): JsonResponse
+    public function store(Request $request)
     {
-        $enrollment = DB::transaction(function () use ($request) {
-            // Membuka transaksi database agar tersimpan di PostgreSQL
-            // Laravel Scout akan otomatis mengindeks record baru ini ke Meilisearch
-            return Enrollment::create($request->validated());
-        });
+        // 1. Cari data mahasiswa berdasarkan NIM yang diinput dari form
+        $student = \App\Models\Student::where('nim', $request->student_nim)->first();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Enrollment berhasil dibuat.',
-            'data' => $enrollment,
-        ], 201);
+        // 2. Cari data mata kuliah berdasarkan Kode Mata Kuliah yang diinput dari form
+        $course = \App\Models\Course::where('code', $request->course_code)->first();
+
+        // Validasi jika mahasiswa atau mata kuliah tidak ditemukan
+        if (!$student || !$course) {
+            return back()->withErrors('Mahasiswa atau Mata Kuliah tidak ditemukan!');
+        }
+
+        // 3. Simpan ke tabel enrollments menggunakan ID yang valid dan dinamis
+        \App\Models\Enrollment::create([
+            'student_id'    => $student->id,     // Mengambil ID asli dari database
+            'course_id'     => $course->id,      // Mengambil ID asli dari database
+            'academic_year' => $request->academic_year,
+            'semester'      => $request->semester,
+            'status'        => $request->status,
+            'student_nim'   => $request->student_nim,
+            'student_name'  => $student->name,   // Otomatis pakai nama asli dari relasi
+            'course_code'   => $request->course_code,
+            'course_name'   => $course->name,    // Otomatis pakai nama matkul asli dari relasi
+        ]);
+
+        return redirect()->back()->with('success', 'Data KRS berhasil ditambahkan!');
     }
 
     /**
